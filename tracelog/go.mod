@@ -1,4 +1,4 @@
-module github.com/xtrpc/trpc-filter-tracelog
+module github.com/xtrpc/trpc-filter/tracelog
 
 go 1.22.4
 
