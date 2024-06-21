@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"go.opentelemetry.io/otel/trace"
 	"trpc.group/trpc-go/trpc-go"
 	"trpc.group/trpc-go/trpc-go/errs"
 	"trpc.group/trpc-go/trpc-go/filter"
@@ -47,7 +46,7 @@ func buildFlowLog(ctx context.Context, rsp interface{}, err error) *logs.FlowLog
 	code, message, errType := getErrCode(getCodefunc(ctx, rsp, err))
 
 	flow := &logs.FlowLog{
-		Kind: logs.FlowKind(trace.SpanKindServer),
+		Kind: logs.FlowKind(2),
 		Source: logs.Service{
 			Name:      msg.CallerServiceName(),
 			Method:    msg.CallerMethod(),
