@@ -12,6 +12,10 @@ import (
 	"trpc.group/trpc-go/trpc-opentelemetry/oteltrpc/traces"
 )
 
+func init() {
+	filter.Register("tracelog", ServerFilter(), ClientFilter())
+}
+
 func ServerFilter() filter.ServerFilter {
 	return func(ctx context.Context, req interface{}, next filter.ServerHandleFunc) (interface{}, error) {
 
