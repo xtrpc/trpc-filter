@@ -1,4 +1,4 @@
-package trace
+package tracelog
 
 import (
 	"context"
@@ -12,6 +12,10 @@ import (
 	"trpc.group/trpc-go/trpc-opentelemetry/oteltrpc/traces"
 )
 
+var DefaultLogFunc = func(ctx context.Context, message string) {
+	log.DebugContextf(ctx, "%s", message)
+}
+
 func init() {
 	filter.Register("tracelog", ServerFilter(), ClientFilter())
 }
@@ -23,12 +27,12 @@ func ServerFilter() filter.ServerFilter {
 
 		rsp, err := next(ctx, req)
 
-		flow := buildFlowLog(ctx, req, err)
+		flow := buildFlowLog(ctx, rsp, err, logs.FlowKindServer)
 		flow.Request.Body = fixStringTooLong(traces.ProtoMessageToCustomJSONStringWithContext(ctx, req))
 		flow.Response.Body = fixStringTooLong(traces.ProtoMessageToCustomJSONStringWithContext(ctx, rsp))
 		flow.Cost = time.Since(start).String()
 
-		log.DebugContextf(ctx, "%s", flow.OneLineString())
+		DefaultLogFunc(ctx, flow.OneLineString())
 
 		return rsp, err
 	}
@@ -41,18 +45,18 @@ func ClientFilter() filter.ClientFilter {
 
 		err := next(ctx, req, rsp)
 
-		flow := buildFlowLog(ctx, req, err)
+		flow := buildFlowLog(ctx, rsp, err, logs.FlowKindClient)
 		flow.Request.Body = fixStringTooLong(traces.ProtoMessageToCustomJSONStringWithContext(ctx, req))
 		flow.Response.Body = fixStringTooLong(traces.ProtoMessageToCustomJSONStringWithContext(ctx, rsp))
 		flow.Cost = time.Since(start).String()
 
-		log.DebugContextf(ctx, "%s", flow.OneLineString())
+		DefaultLogFunc(ctx, flow.OneLineString())
 
 		return err
 	}
 }
 
-func buildFlowLog(ctx context.Context, rsp interface{}, err error) *logs.FlowLog {
+func buildFlowLog(ctx context.Context, rsp interface{}, err error, kind logs.FlowKind) *logs.FlowLog {
 	msg := trpc.Message(ctx)
 
 	var sourceAddr, targetAddr string
@@ -68,7 +72,7 @@ func buildFlowLog(ctx context.Context, rsp interface{}, err error) *logs.FlowLog
 	code, message, errType := getErrCode(getCodefunc(ctx, rsp, err))
 
 	flow := &logs.FlowLog{
-		Kind: logs.FlowKind(2),
+		Kind: kind,
 		Source: logs.Service{
 			Name:      msg.CallerServiceName(),
 			Method:    msg.CallerMethod(),
