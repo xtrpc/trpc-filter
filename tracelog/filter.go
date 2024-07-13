@@ -67,7 +67,9 @@ func buildFlowLog(ctx context.Context, rsp interface{}, err error, kind logs.Flo
 		sourceAddr = msg.LocalAddr().String()
 	}
 
-	sourceAddr, targetAddr = targetAddr, sourceAddr
+	if kind == logs.FlowKindServer {
+		sourceAddr, targetAddr = targetAddr, sourceAddr
+	}
 
 	code, message, errType := getErrCode(getCodefunc(ctx, rsp, err))
 
@@ -82,8 +84,8 @@ func buildFlowLog(ctx context.Context, rsp interface{}, err error, kind logs.Flo
 		Target: logs.Service{
 			Name:      msg.CalleeServiceName(),
 			Method:    msg.CalleeMethod(),
-			Address:   targetAddr,
 			Namespace: msg.EnvName(),
+			Address:   targetAddr,
 		},
 		Status: logs.Status{
 			Code:    int32(code),
