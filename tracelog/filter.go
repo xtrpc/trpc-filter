@@ -30,6 +30,24 @@ func ServerFilter() filter.ServerFilter {
 	}
 }
 
+func ClientFilter() filter.ClientFilter {
+	return func(ctx context.Context, req, rsp interface{}, next filter.ClientHandleFunc) error {
+
+		start := time.Now()
+
+		err := next(ctx, req, rsp)
+
+		flow := buildFlowLog(ctx, req, err)
+		flow.Request.Body = fixStringTooLong(traces.ProtoMessageToCustomJSONStringWithContext(ctx, req))
+		flow.Response.Body = fixStringTooLong(traces.ProtoMessageToCustomJSONStringWithContext(ctx, rsp))
+		flow.Cost = time.Since(start).String()
+
+		log.DebugContextf(ctx, "%s", flow.OneLineString())
+
+		return err
+	}
+}
+
 func buildFlowLog(ctx context.Context, rsp interface{}, err error) *logs.FlowLog {
 	msg := trpc.Message(ctx)
 
