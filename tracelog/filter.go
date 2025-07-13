@@ -27,8 +27,11 @@ func ServerFilter() filter.ServerFilter {
 
 		rsp, err := next(ctx, req)
 
-		flow := buildFlowLog(ctx, rsp, err, logs.FlowKindServer)
+		flow, path := buildFlowLog(ctx, rsp, err, logs.FlowKindServer)
 		flow.Request.Body = fixStringTooLong(traces.ProtoMessageToCustomJSONStringWithContext(ctx, req))
+		if flow.Request.Body == "" || flow.Request.Body == "null" {
+			flow.Request.Body = path
+		}
 		flow.Response.Body = fixStringTooLong(traces.ProtoMessageToCustomJSONStringWithContext(ctx, rsp))
 		flow.Cost = time.Since(start).String()
 
@@ -45,8 +48,11 @@ func ClientFilter() filter.ClientFilter {
 
 		err := next(ctx, req, rsp)
 
-		flow := buildFlowLog(ctx, rsp, err, logs.FlowKindClient)
+		flow, path := buildFlowLog(ctx, rsp, err, logs.FlowKindClient)
 		flow.Request.Body = fixStringTooLong(traces.ProtoMessageToCustomJSONStringWithContext(ctx, req))
+		if flow.Request.Body == "" || flow.Request.Body == "null" {
+			flow.Request.Body = path
+		}
 		flow.Response.Body = fixStringTooLong(traces.ProtoMessageToCustomJSONStringWithContext(ctx, rsp))
 		flow.Cost = time.Since(start).String()
 
@@ -56,7 +62,7 @@ func ClientFilter() filter.ClientFilter {
 	}
 }
 
-func buildFlowLog(ctx context.Context, rsp interface{}, err error, kind logs.FlowKind) *logs.FlowLog {
+func buildFlowLog(ctx context.Context, rsp interface{}, err error, kind logs.FlowKind) (*logs.FlowLog, string) {
 	msg := trpc.Message(ctx)
 
 	var sourceAddr, targetAddr string
@@ -94,7 +100,7 @@ func buildFlowLog(ctx context.Context, rsp interface{}, err error, kind logs.Flo
 		},
 	}
 
-	return flow
+	return flow, msg.ClientRPCName()
 }
 
 func toErrorType(t int) string {
